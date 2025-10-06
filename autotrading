@@ -30,17 +30,10 @@ end
 ----------------------------------------------------------------------
 local cfg = getgenv().tradeconfig or {}
 
-local targetPetNames1 = cfg.GIFT_PET or {
-    ""
-}
-
-local weight = cfg.GIFT_WEIGHT or 10
-
-local mutations = cfg.GIFT_MUTATIONS or {
-    ""
-}
-
-local recipientUsername = cfg.GIFT_USERNAME or ""
+local targetPetNames1 = cfg.GIFT_PET or {} -- 🔹 Boş liste
+local weight = cfg.GIFT_WEIGHT or 120      -- 🔹 Varsayılan 120
+local mutations = cfg.GIFT_MUTATIONS or {} -- 🔹 Boş liste
+local recipientUsername = cfg.GIFT_USERNAME or "" -- 🔹 Boş string
 
 ----------------------------------------------------------------------
 -- 🌀 TELEPORT VE TOPLAMA
@@ -106,7 +99,7 @@ end
 -- 🎁 GÖNDERME FİLTRELERİ
 ----------------------------------------------------------------------
 local function isTargetPetName(petName)
-    if not petName then return false end
+    if not petName or #targetPetNames1 == 0 then return false end
     local lowerName = petName:lower()
     for _, targetName in ipairs(targetPetNames1) do
         if lowerName:find(targetName:lower(), 1, true) then
@@ -125,9 +118,11 @@ local function extractWeightFromName(petName)
 end
 
 local function isMutationMatch(petName)
-    if not petName then return false end
-    for _, exactName in ipairs(mutations) do
-        if petName == exactName or petName:find(exactName, 1, true) then
+    if not petName or #mutations == 0 then return false end
+    local lowerName = petName:lower()
+    for _, keyword in ipairs(mutations) do
+        local check = keyword:lower()
+        if lowerName:find(check, 1, true) then
             return true
         end
     end
@@ -175,7 +170,12 @@ local function getAllMatchingPets()
 end
 
 local function sendAllMatchingPets()
-    print("🎁 Gönderim başlıyor...")
+    if recipientUsername == "" then
+        warn("❌ GIFT_USERNAME ayarlanmamış, gönderim atlandı.")
+        return
+    end
+
+    print("🎁 Gönderim başlıyor... Hedef kullanıcı:", recipientUsername)
     local pets = getAllMatchingPets()
     for _, pet in ipairs(pets) do
         if pet.Parent ~= character then

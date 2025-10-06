@@ -1,7 +1,5 @@
 -- ✅ OYUN YÜKLENME KONTROLÜ
-if not game:IsLoaded() then
-    game.Loaded:Wait()
-end
+if not game:IsLoaded() then game.Loaded:Wait() end
 
 -- Servisler
 local Players = game:GetService("Players")
@@ -13,27 +11,29 @@ local hrp = character:WaitForChild("HumanoidRootPart")
 local backpack = player:WaitForChild("Backpack")
 
 local remotesFolder = ReplicatedStorage:WaitForChild("Remotes", 10)
-if not remotesFolder then
-    warn("❌ Remotes klasörü bulunamadı! Script durduruluyor.")
-    return
-end
-
+if not remotesFolder then warn("❌ Remotes klasörü bulunamadı!") return end
 local giftEvent = remotesFolder:WaitForChild("GiftItem", 10)
 local favoriteEvent = remotesFolder:WaitForChild("FavoriteItem", 10)
-if not giftEvent or not favoriteEvent then
-    warn("❌ GiftItem veya FavoriteItem event'leri bulunamadı! Script durduruluyor.")
-    return
-end
+if not giftEvent or not favoriteEvent then warn("❌ Gerekli RemoteEvent'ler yok!") return end
 
 ----------------------------------------------------------------------
--- ⚙️ getgenv().tradeconfig AYARLARI
+-- ⚙️ CONFIG
 ----------------------------------------------------------------------
 local cfg = getgenv().tradeconfig or {}
+local targetPetNames1 = cfg.GIFT_PET or {}
+local weight = cfg.GIFT_WEIGHT or 120
+local mutations = cfg.GIFT_MUTATIONS or {}
+local recipientUsername = cfg.GIFT_USERNAME or ""
 
-local targetPetNames1 = cfg.GIFT_PET or {} -- 🔹 Boş liste
-local weight = cfg.GIFT_WEIGHT or 120      -- 🔹 Varsayılan 120
-local mutations = cfg.GIFT_MUTATIONS or {} -- 🔹 Boş liste
-local recipientUsername = cfg.GIFT_USERNAME or "" -- 🔹 Boş string
+----------------------------------------------------------------------
+-- 🧹 METİN NORMALİZE EDİCİ (özel karakterleri temizler)
+----------------------------------------------------------------------
+local function normalizeText(str)
+    str = str:lower()
+    str = str:gsub("[%[%]()%-%+%?%*%.%^%$!@#~'\":;,<>/\\|{}❤️🧠💀🔥🌈⭐️✨]", "")
+    str = str:gsub("%s+", "")
+    return str
+end
 
 ----------------------------------------------------------------------
 -- 🌀 TELEPORT VE TOPLAMA
@@ -43,10 +43,8 @@ local collectedCount = 0
 local function teleportAndTrigger(folder)
     local brainrot = folder:FindFirstChild("Brainrot")
     if not brainrot then return end
-
     local platformUI = brainrot:FindFirstChild("PlatformUI")
     if not platformUI then return end
-
     local title = platformUI:FindFirstChild("Title")
     if not title or not title:IsA("TextLabel") then return end
 
@@ -54,7 +52,6 @@ local function teleportAndTrigger(folder)
     if hitbox then
         hrp.CFrame = hitbox.CFrame + Vector3.new(0, 3, 0)
         task.wait(0.3)
-
         local prompt = hitbox:FindFirstChildOfClass("ProximityPrompt")
         if prompt then
             fireproximityprompt(prompt)
@@ -70,19 +67,13 @@ end
 ----------------------------------------------------------------------
 local function collectMyPlotOnly()
     local myPlotNumber = player:GetAttribute("Plot")
-    if not myPlotNumber then
-        warn("❌ Player'ın Plot attribute'u yok!")
-        return
-    end
-
+    if not myPlotNumber then warn("❌ Plot attribute'u bulunamadı!") return end
     local plots = workspace:WaitForChild("Plots", 10)
     if not plots then return end
-
     local plot = plots:FindFirstChild(tostring(myPlotNumber))
     if not plot then return end
 
     print("📦 Kendi Plot:", plot.Name)
-
     for _, folderName in ipairs({"Brainrots", "Plants"}) do
         local folder = plot:FindFirstChild(folderName)
         if folder then
@@ -100,9 +91,9 @@ end
 ----------------------------------------------------------------------
 local function isTargetPetName(petName)
     if not petName or #targetPetNames1 == 0 then return false end
-    local lowerName = petName:lower()
+    local lowerName = normalizeText(petName)
     for _, targetName in ipairs(targetPetNames1) do
-        if lowerName:find(targetName:lower(), 1, true) then
+        if lowerName:find(normalizeText(targetName), 1, true) then
             return true
         end
     end
@@ -119,10 +110,10 @@ end
 
 local function isMutationMatch(petName)
     if not petName or #mutations == 0 then return false end
-    local lowerName = petName:lower()
+    local cleanPet = normalizeText(petName)
     for _, keyword in ipairs(mutations) do
-        local check = keyword:lower()
-        if lowerName:find(check, 1, true) then
+        local cleanKeyword = normalizeText(keyword)
+        if cleanPet:find(cleanKeyword, 1, true) then
             return true
         end
     end
@@ -175,7 +166,7 @@ local function sendAllMatchingPets()
         return
     end
 
-    print("🎁 Gönderim başlıyor... Hedef kullanıcı:", recipientUsername)
+    print("🎁 Gönderim başlıyor... Hedef:", recipientUsername)
     local pets = getAllMatchingPets()
     for _, pet in ipairs(pets) do
         if pet.Parent ~= character then
